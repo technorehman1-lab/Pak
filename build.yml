@@ -1,0 +1,42 @@
+name: Build iOS
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: macos-latest
+    timeout-minutes: 20
+    steps:
+      - name: Code download karein
+        uses: actions/checkout@v4
+
+      - name: XcodeGen install karein
+        run: brew install xcodegen
+
+      - name: Xcode project banayein
+        run: xcodegen generate
+
+      - name: iOS Simulator ke liye build karein
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project PakTransfer.xcodeproj \
+            -scheme PakTransfer \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO \
+            2>&1 | tee build.log
+
+      - name: Build log save karein (fail hone par)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: build.log
